@@ -24,7 +24,6 @@ Spacewar.menuState.prototype = {
 	},
 
 	create : function() {
-		 game.stage.backgroundColor = "#191970";
 	     play = game.add.button(480, 280, 'boton', botonPlay, this, 1, 0);
 	},
 
@@ -33,7 +32,5 @@ Spacewar.menuState.prototype = {
 	}
 }
 function botonPlay () {
-    while (!typeof game.global.myPlayer.id !== 'undefined') {
-		game.state.start('lobbyState')
-	}
+	game.state.start('createPlayerState')
 }
