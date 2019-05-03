@@ -47,6 +47,9 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				msg.put("shipType", player.getShipType());
 				player.getSession().sendMessage(new TextMessage(msg.toString()));
 				break;
+			case "UPDATE PLAYER":
+				game.updatePlayer(player, node.get("username").asText(), node.get("ship").asText());
+				break;
 			case "JOIN ROOM":
 				msg.put("event", "NEW ROOM");
 				msg.put("room", "GLOBAL");

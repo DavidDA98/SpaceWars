@@ -45,6 +45,11 @@ public class SpacewarGame {
 			this.startGameLoop();
 		}
 	}
+	
+	public void updatePlayer(Player player, String username, String ship) {
+		players.get(player.getSession().getId()).setUsername(username);
+		players.get(player.getSession().getId()).setShipType(ship);
+	}
 
 	public Collection<Player> getPlayers() {
 		return players.values();
@@ -110,6 +115,7 @@ public class SpacewarGame {
 
 				ObjectNode jsonPlayer = mapper.createObjectNode();
 				jsonPlayer.put("id", player.getPlayerId());
+				jsonPlayer.put("name", player.getUsername());
 				jsonPlayer.put("shipType", player.getShipType());
 				jsonPlayer.put("posX", player.getPosX());
 				jsonPlayer.put("posY", player.getPosY());
