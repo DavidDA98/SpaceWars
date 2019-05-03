@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Implementation-Title: DavidDelgado-JorgeDiego-SandraMorcuende
 Implementation-Version: 0.0.1-SNAPSHOT
-Built-By: d.delgadoa.2016
+Built-By: s.morcuende.2016
 Implementation-Vendor-Id: es.urjc.em.practica_2018-19
 Build-Jdk: 1.8.0_172
 Implementation-URL: https://projects.spring.io/spring-boot/#/spring-bo
