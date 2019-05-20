@@ -1,5 +1,7 @@
 package spacewar;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.web.socket.CloseStatus;
@@ -13,11 +15,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class WebsocketGameHandler extends TextWebSocketHandler {
 
-	private SpacewarGame game = SpacewarGame.INSTANCE;
 	private static final String PLAYER_ATTRIBUTE = "PLAYER";
+	private static final String ROOM_ATTRIBUTE = "ROOM";
+	
 	private ObjectMapper mapper = new ObjectMapper();
 	private AtomicInteger playerId = new AtomicInteger(0);
 	private AtomicInteger projectileId = new AtomicInteger(0);
+	
+	private Map<Room, SpacewarGame> rooms = new HashMap<>();
 
 	@Override
 	public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -29,8 +34,6 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 		msg.put("id", player.getPlayerId());
 		msg.put("shipType", player.getShipType());
 		player.getSession().sendMessage(new TextMessage(msg.toString()));
-		
-		game.addPlayer(player);
 	}
 
 	@Override
@@ -39,6 +42,8 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 			JsonNode node = mapper.readTree(message.getPayload());
 			ObjectNode msg = mapper.createObjectNode();
 			Player player = (Player) session.getAttributes().get(PLAYER_ATTRIBUTE);
+			SpacewarGame swg;
+			Room room;
 
 			switch (node.get("event").asText()) {
 			case "JOIN":
@@ -48,11 +53,40 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				player.getSession().sendMessage(new TextMessage(msg.toString()));
 				break;
 			case "UPDATE PLAYER":
-				game.updatePlayer(player, node.get("username").asText(), node.get("ship").asText());
+				player.setUsername(node.get("username").asText()); 
+				player.setShipType(node.get("ship").asText());
+				break;
+			case "CREATE ROOM":
+				for(Room r: rooms.keySet()) {
+					if (node.get("name").asText() == r.getRoomId()) {
+						msg.put("event", "NEW ROOM");
+						msg.put("room", -1);
+						player.getSession().sendMessage(new TextMessage(msg.toString()));
+						break;
+					}
+				}
+				room = new Room(node.get("name").asText(), node.get("mode").asInt(), node.get("maxPlayers").asInt(), node.get("difficulty").asInt());
+				session.getAttributes().put(ROOM_ATTRIBUTE, room);
+				
+				swg = SpacewarGame.INSTANCE;
+				swg.addPlayer(player);
+				
+				rooms.put(room, swg);
+				
+				msg.put("event", "NEW ROOM");
+				msg.put("room", room.getRoomId());
+				player.getSession().sendMessage(new TextMessage(msg.toString()));
 				break;
 			case "JOIN ROOM":
+				String sala = node.get("room").asText();
+				for(Room r: rooms.keySet()) {
+					if (sala == r.getRoomId()) {
+						swg = rooms.get(r);
+						swg.addPlayer(player);
+					}
+				}
 				msg.put("event", "NEW ROOM");
-				msg.put("room", "GLOBAL");
+				msg.put("room", sala);
 				player.getSession().sendMessage(new TextMessage(msg.toString()));
 				break;
 			case "UPDATE MOVEMENT":
@@ -61,8 +95,11 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 						node.path("movement").get("rotLeft").asBoolean(),
 						node.path("movement").get("rotRight").asBoolean());
 				if (node.path("bullet").asBoolean()) {
+					room = (Room) session.getAttributes().get(ROOM_ATTRIBUTE);
+					swg = rooms.get(room);
+					
 					Projectile projectile = new Projectile(player, this.projectileId.incrementAndGet());
-					game.addProjectile(projectile.getId(), projectile);
+					swg.addProjectile(projectile.getId(), projectile);
 				}
 				break;
 			default:
@@ -78,11 +115,13 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 	@Override
 	public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
 		Player player = (Player) session.getAttributes().get(PLAYER_ATTRIBUTE);
-		game.removePlayer(player);
+		Room room = (Room) session.getAttributes().get(ROOM_ATTRIBUTE);
+		SpacewarGame swg = rooms.get(room);
+		swg.removePlayer(player);
 
 		ObjectNode msg = mapper.createObjectNode();
 		msg.put("event", "REMOVE PLAYER");
 		msg.put("id", player.getPlayerId());
-		game.broadcast(msg.toString());
+		swg.broadcast(msg.toString());
 	}
 }

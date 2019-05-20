@@ -1,7 +1,5 @@
 package spacewar;
 
-import org.springframework.web.socket.WebSocketSession;
-
 public class Room {
 	private final String roomId;
 	private final int mode;
@@ -13,5 +11,21 @@ public class Room {
 		this.mode = mode;
 		this.maxPlayers = maxPlayers;
 		this.difficulty = difficulty;
+	}
+
+	public String getRoomId() {
+		return roomId;
+	}
+
+	public int getMode() {
+		return mode;
+	}
+
+	public int getMaxPlayers() {
+		return maxPlayers;
+	}
+
+	public int getDifficulty() {
+		return difficulty;
 	}
 }

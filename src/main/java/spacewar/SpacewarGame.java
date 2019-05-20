@@ -45,11 +45,6 @@ public class SpacewarGame {
 			this.startGameLoop();
 		}
 	}
-	
-	public void updatePlayer(Player player, String username, String ship) {
-		players.get(player.getSession().getId()).setUsername(username);
-		players.get(player.getSession().getId()).setShipType(ship);
-	}
 
 	public Collection<Player> getPlayers() {
 		return players.values();
