@@ -363,13 +363,22 @@ Spacewar.createPlayerState.prototype = {
 function keyPress(char){
 	game.global.myPlayer.name += char;
 	text.setText("User name: " +game.global.myPlayer.name);
+	
 }
 
 function changeImage(image){
 	spaceship.frameName = image.frameName;
 	spaceship.sprite = image.sprite;
+	game.global.myPlayer.shipType = image.frameName;
 }
 
 function botonNext(){
+	let message = {
+			event : 'UPDATE PLAYER',
+			username : game.global.myPlayer.name,
+			ship : game.global.myPlayer.shipType
+		}
+	game.global.socket.send(JSON.stringify(message));
+
 	game.state.start('chooseRoomState')
 }
