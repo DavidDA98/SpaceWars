@@ -2,6 +2,8 @@ Spacewar.newRoomState = function(game) {
 
 }
 
+var deletedChar = false;
+
 Spacewar.newRoomState.prototype = {
 
 	init : function() {
@@ -16,13 +18,13 @@ Spacewar.newRoomState.prototype = {
 
 	create : function() {
 		roomName = "";
-		game.input.keyboard.addCallbacks(this, null, null, keyPress);
+		game.input.keyboard.addCallbacks(this, null, null, keyPressRoom);
 		backSpace = game.input.keyboard.addKey(Phaser.Keyboard.BACKSPACE);
 		text = game.add.text(50, 180, "Room name: ", {
 			font: "65px Arial",
 			fill: "#ffff66"
 		});
-		game.add.button(480, 480, 'boton', botonNext, this, 1, 0);
+		game.add.button(480, 480, 'boton', createRoom, this, 1, 0);
 	},
 
 	update : function() {
@@ -32,7 +34,7 @@ Spacewar.newRoomState.prototype = {
 		if (backSpace.isDown && deletedChar == false){
 			if (roomName != null && roomName.length > 0) {
 				rommName = roomName.substring(0, roomName.length - 1);
-				text.setText("User name: " + roomName);
+				text.setText("Room name: " + roomName);
 			}
 			deletedChar = true;
 		}
@@ -40,16 +42,16 @@ Spacewar.newRoomState.prototype = {
 }
 
 
-function keyPress(char){
+function keyPressRoom(char){
 	roomName += char;
-	text.setText("User name: " + roomName);
+	text.setText("Room name: " + roomName);
 }
 
 
-function botonNext(){
-	if(roomName != null){
+function createRoom(){
+	if(roomName != ""){
 		message = {
-				event : 'NEW ROOM'
+				event : 'NEW ROOM',
 				room : roomName
 			}
 		game.global.socket.send(JSON.stringify(message))
