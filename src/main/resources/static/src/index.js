@@ -8,6 +8,7 @@ window.onload = function() {
 		DEBUG_MODE : true,
 		socket : null,
 		myPlayer : new Object(),
+		rooms : [],
 		otherPlayers : [],
 		projectiles : []
 	}
@@ -51,6 +52,13 @@ window.onload = function() {
 					name : msg.room
 			}
 			break
+		case 'GET ROOMS' :
+			if (game.global.DEBUG_MODE) {
+				console.log('[DEBUG] GET ROOMS message recieved')
+				console.dir(msg)
+			}
+			game.global.rooms = msg.rooms
+			break
 		case 'GAME STATE UPDATE' :
 			if (game.global.DEBUG_MODE) {
 				console.log('[DEBUG] GAME STATE UPDATE message recieved')
@@ -68,6 +76,7 @@ window.onload = function() {
 									image : game.add.sprite(player.posX, player.posY, 'spacewar', player.shipType)
 							}
 							game.global.otherPlayers[player.id].image.anchor.setTo(0.5, 0.5)
+							game.global.otherPlayers[player.id].name = player.name;
 						} else {
 							game.global.otherPlayers[player.id].image.x = player.posX
 							game.global.otherPlayers[player.id].image.y = player.posY

@@ -11,6 +11,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class WebsocketGameHandler extends TextWebSocketHandler {
@@ -87,6 +88,20 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				}
 				msg.put("event", "NEW ROOM");
 				msg.put("room", sala);
+				player.getSession().sendMessage(new TextMessage(msg.toString()));
+				break;
+			case "GET ROOMS":
+				ArrayNode arrayNodeRooms = mapper.createArrayNode();
+				msg.put("event", "GET ROOMS");
+				for(Room r: rooms.keySet()) {
+					ObjectNode jsonRoom = mapper.createObjectNode();
+					jsonRoom.put("name", r.getRoomId());
+					jsonRoom.put("mode", r.getMode());
+					jsonRoom.put("maxPlayers", r.getMaxPlayers());
+					jsonRoom.put("difficulty", r.getDifficulty());
+					arrayNodeRooms.addPOJO(jsonRoom);
+				}
+				msg.putPOJO("rooms", arrayNodeRooms);
 				player.getSession().sendMessage(new TextMessage(msg.toString()));
 				break;
 			case "UPDATE MOVEMENT":
