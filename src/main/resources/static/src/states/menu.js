@@ -25,6 +25,10 @@ Spacewar.menuState.prototype = {
 
 	create : function() {
 	     play = game.add.button(480, 280, 'boton', botonPlay, this, 1, 0);
+	     textPlayButton = game.add.text(497, 285, "PLAY", {
+				font: "24px Arial",
+				fill: "#000000"
+			})
 	},
 
 	update : function() {

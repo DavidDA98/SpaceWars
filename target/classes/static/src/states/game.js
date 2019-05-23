@@ -3,13 +3,14 @@ Spacewar.gameState = function(game) {
 	this.fireBullet
 	this.numStars = 100 // Should be canvas size dependant
 	this.maxProjectiles = 800 // 8 per player
+	
 }
 
 Spacewar.gameState.prototype = {
 
 	init : function() {
 		if (game.global.DEBUG_MODE) {
-			console.log("[DEBUG] Entering **GAME** state");
+			console.log("[DEBUG] Entering *GAME* state");
 		}
 	},
 
@@ -40,6 +41,8 @@ Spacewar.gameState.prototype = {
 		game.global.myPlayer.image = game.add.sprite(0, 0, 'spacewar',
 				game.global.myPlayer.shipType)
 		game.global.myPlayer.image.anchor.setTo(0.5, 0.5)
+		
+
 	},
 
 	create : function() {
@@ -66,6 +69,37 @@ Spacewar.gameState.prototype = {
 				Phaser.Keyboard.SPACEBAR ]);
 
 		game.camera.follow(game.global.myPlayer.image);
+
+		nameUI = game.add.text(10, 20, game.global.myPlayer.name, {
+			font: "12px Arial",
+			fill: "#ffff66"
+		});
+
+		lifeUI = game.add.text(10, 20, "vida", {
+			font: "12px Arial",
+			fill: "#ffff66"
+		});
+
+
+		proyectilesUI = game.add.text(5, 480, "municion", {
+			font: "12px Arial",
+			fill: "#ffff66"
+		});
+		proyectilesUI.fixedToCamera = true;
+
+		propulsorUI = game.add.text(5, 490, "municion", {
+			font: "12px Arial",
+			fill: "#ffff66"
+		});
+		propulsorUI.fixedToCamera = true;
+
+		exit = game.add.button(900, 490, 'boton', botonExit, this, 1, 0);
+		textExitButton = game.add.text(902, 488, "Exit", {
+			font: "24px Arial",
+			fill: "#000000"
+		})
+		
+
 	},
 
 	update : function() {
@@ -97,5 +131,20 @@ Spacewar.gameState.prototype = {
 			console.log("[DEBUG] Sending UPDATE MOVEMENT message to server")
 		}
 		game.global.socket.send(JSON.stringify(msg))
+		
+		lifeUI.setText("vida actualizada");
+		proyectilesUI.setText("proyectiles actualizados");
+		propulsorUI.setText("propulsor actualizado");
+		
+		nameUI.x = game.global.myPlayer.image.x;
+		nameUI.y = game.global.myPlayer.image.y;
+		nameUI.y += 10;
+
+		lifeUI.x = game.global.myPlayer.image.x;
+		lifeUI.y = game.global.myPlayer.image.y;
+		lifeUI.y += 5;
 	}
+}
+function botonExit(){
+	game.state.start('menuState')
 }

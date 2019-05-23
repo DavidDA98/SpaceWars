@@ -69,6 +69,10 @@ Spacewar.createPlayerState.prototype = {
 		});
 		//spaceship
 		next = game.add.button(475, 480, 'boton', botonNext, this, 1, 0);
+		textNextButton = game.add.text(505, 480, "OK", {
+			font: "24px Arial",
+			fill: "#000000"
+		})
 		text1 = game.add.text(10, 125, "Choose your spaceship: ", {
 			font: "42px Arial",
 			fill: "#ffff66"

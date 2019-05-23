@@ -69,6 +69,10 @@ Spacewar.createPlayerState.prototype = {
 		});
 		//spaceship
 		next = game.add.button(475, 480, 'boton', botonNext, this, 1, 0);
+		textNextButton = game.add.text(505, 480, "OK", {
+			font: "24px Arial",
+			fill: "#000000"
+		})
 		text1 = game.add.text(10, 125, "Choose your spaceship: ", {
 			font: "42px Arial",
 			fill: "#ffff66"
@@ -363,13 +367,22 @@ Spacewar.createPlayerState.prototype = {
 function keyPress(char){
 	game.global.myPlayer.name += char;
 	text.setText("User name: " +game.global.myPlayer.name);
+	
 }
 
 function changeImage(image){
 	spaceship.frameName = image.frameName;
 	spaceship.sprite = image.sprite;
+	game.global.myPlayer.shipType = image.frameName;
 }
 
 function botonNext(){
+	let message = {
+			event : 'UPDATE PLAYER',
+			username : game.global.myPlayer.name,
+			ship : game.global.myPlayer.shipType
+		}
+	game.global.socket.send(JSON.stringify(message));
+
 	game.state.start('chooseRoomState')
 }
