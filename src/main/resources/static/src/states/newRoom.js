@@ -10,6 +10,7 @@ Spacewar.newRoomState.prototype = {
 		if (game.global.DEBUG_MODE) {
 			console.log("[DEBUG] Entering **New Room** state");
 		}
+		game.global.myPlayer.room = {name : -1}
 	},
 
 	preload : function() {
@@ -33,10 +34,14 @@ Spacewar.newRoomState.prototype = {
 		}
 		if (backSpace.isDown && deletedChar == false){
 			if (roomName != null && roomName.length > 0) {
-				rommName = roomName.substring(0, roomName.length - 1);
+				roomName = roomName.substring(0, roomName.length - 1);
 				text.setText("Room name: " + roomName);
 			}
 			deletedChar = true;
+		}
+		
+		if (roomName == game.global.myPlayer.room.name) {
+			game.state.start('matchmakingState');
 		}
 	}
 }
@@ -51,10 +56,12 @@ function keyPressRoom(char){
 function createRoom(){
 	if(roomName != ""){
 		message = {
-				event : 'NEW ROOM',
-				room : roomName
+				event : 'CREATE ROOM',
+				name : roomName,
+				mode : 1,
+				maxPlayers : 2,
+				difficulty : 5
 			}
 		game.global.socket.send(JSON.stringify(message))
-		game.state.start('matchmakingState')
 	}
 }

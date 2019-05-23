@@ -7,7 +7,7 @@ window.onload = function() {
 		FPS : 30,
 		DEBUG_MODE : true,
 		socket : null,
-		myPlayer : new Object(),
+		myPlayer : {health : 100, ammo : 8, thruster : 500},
 		rooms : [],
 		otherPlayers : [],
 		projectiles : []
@@ -70,6 +70,9 @@ window.onload = function() {
 						game.global.myPlayer.image.x = player.posX
 						game.global.myPlayer.image.y = player.posY
 						game.global.myPlayer.image.angle = player.facingAngle
+						game.global.myPlayer.health = player.health
+						game.global.myPlayer.ammo = player.ammo
+						game.global.myPlayer.thruster = player.thruster
 					} else {
 						if (typeof game.global.otherPlayers[player.id] == 'undefined') {
 							game.global.otherPlayers[player.id] = {

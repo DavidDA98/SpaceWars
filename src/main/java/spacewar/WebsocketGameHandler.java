@@ -105,11 +105,22 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				player.getSession().sendMessage(new TextMessage(msg.toString()));
 				break;
 			case "UPDATE MOVEMENT":
-				player.loadMovement(node.path("movement").get("thrust").asBoolean(),
-						node.path("movement").get("brake").asBoolean(),
-						node.path("movement").get("rotLeft").asBoolean(),
-						node.path("movement").get("rotRight").asBoolean());
-				if (node.path("bullet").asBoolean()) {
+				if (player.getThruster() > 0) {
+					player.loadMovement(node.path("movement").get("thrust").asBoolean(),
+							node.path("movement").get("brake").asBoolean(),
+							node.path("movement").get("rotLeft").asBoolean(),
+							node.path("movement").get("rotRight").asBoolean());
+					if (node.path("movement").get("thrust").asBoolean()) {
+						player.setThruster(player.getThruster() - 1);
+					}
+				} else {
+					player.loadMovement(false,
+							node.path("movement").get("brake").asBoolean(),
+							node.path("movement").get("rotLeft").asBoolean(),
+							node.path("movement").get("rotRight").asBoolean());
+				}
+				if (node.path("bullet").asBoolean() && player.getAmmo() > 0) {
+					player.setAmmo(player.getAmmo() - 1);
 					room = (Room) session.getAttributes().get(ROOM_ATTRIBUTE);
 					swg = rooms.get(room);
 					
@@ -130,13 +141,15 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 	@Override
 	public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
 		Player player = (Player) session.getAttributes().get(PLAYER_ATTRIBUTE);
-		Room room = (Room) session.getAttributes().get(ROOM_ATTRIBUTE);
-		SpacewarGame swg = rooms.get(room);
-		swg.removePlayer(player);
-
-		ObjectNode msg = mapper.createObjectNode();
-		msg.put("event", "REMOVE PLAYER");
-		msg.put("id", player.getPlayerId());
-		swg.broadcast(msg.toString());
+		if (session.getAttributes().get(ROOM_ATTRIBUTE) instanceof Room) {
+			Room room = (Room) session.getAttributes().get(ROOM_ATTRIBUTE);
+			SpacewarGame swg = rooms.get(room);
+			swg.removePlayer(player);
+			
+			ObjectNode msg = mapper.createObjectNode();
+			msg.put("event", "REMOVE PLAYER");
+			msg.put("id", player.getPlayerId());
+			swg.broadcast(msg.toString());
+		}
 	}
 }

@@ -75,19 +75,19 @@ Spacewar.gameState.prototype = {
 			fill: "#ffff66"
 		});
 
-		lifeUI = game.add.text(10, 20, "vida", {
+		lifeUI = game.add.text(10, 20, "Salud: " + game.global.myPlayer.health, {
 			font: "12px Arial",
 			fill: "#ffff66"
 		});
 
 
-		proyectilesUI = game.add.text(5, 480, "municion", {
+		proyectilesUI = game.add.text(5, 480, "Municion: " + game.global.myPlayer.ammo, {
 			font: "12px Arial",
 			fill: "#ffff66"
 		});
 		proyectilesUI.fixedToCamera = true;
 
-		propulsorUI = game.add.text(5, 490, "municion", {
+		propulsorUI = game.add.text(5, 490, "Propulsor: " + game.global.myPlayer.thruster, {
 			font: "12px Arial",
 			fill: "#ffff66"
 		});
@@ -132,17 +132,15 @@ Spacewar.gameState.prototype = {
 		}
 		game.global.socket.send(JSON.stringify(msg))
 		
-		lifeUI.setText("vida actualizada");
-		proyectilesUI.setText("proyectiles actualizados");
-		propulsorUI.setText("propulsor actualizado");
+		lifeUI.setText("Salud: " + game.global.myPlayer.health);
+		proyectilesUI.setText("Municion: " + game.global.myPlayer.ammo);
+		propulsorUI.setText("Propulsor: " + game.global.myPlayer.thruster);
 		
 		nameUI.x = game.global.myPlayer.image.x;
-		nameUI.y = game.global.myPlayer.image.y;
-		nameUI.y += 10;
+		nameUI.y = game.global.myPlayer.image.y + 10;
 
 		lifeUI.x = game.global.myPlayer.image.x;
-		lifeUI.y = game.global.myPlayer.image.y;
-		lifeUI.y += 5;
+		lifeUI.y = game.global.myPlayer.image.y + 5;
 	}
 }
 function botonExit(){
