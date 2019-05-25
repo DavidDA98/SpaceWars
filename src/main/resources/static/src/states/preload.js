@@ -20,6 +20,10 @@ Spacewar.preloadState.prototype = {
 		game.load.image('boton', 'assets/interface/boton.png')
 		game.load.image('nueva_sala', 'assets/interface/nueva_sala.png')
 		game.load.image('unir_sala', 'assets/interface/unir_sala.png')
+		game.load.image('mas_salas', 'assets/interface/mas_salas.png')
+		game.load.image('atras', 'assets/interface/atras.png')
+		game.load.image('aleatorio', 'assets/interface/aleatorio.png')
+		game.load.image('refresh', 'assets/interface/refrescar.png')
 	},
 
 	create : function() {
