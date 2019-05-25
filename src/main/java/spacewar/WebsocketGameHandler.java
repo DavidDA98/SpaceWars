@@ -79,16 +79,28 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				player.getSession().sendMessage(new TextMessage(msg.toString()));
 				break;
 			case "JOIN ROOM":
+				boolean found = false;
 				String sala = node.get("room").asText();
 				for(Room r: rooms.keySet()) {
-					if (sala == r.getRoomId()) {
+					if (sala.equals(r.getRoomId())) {
+						session.getAttributes().put(ROOM_ATTRIBUTE, r);
 						swg = rooms.get(r);
 						swg.addPlayer(player);
+						
+						found = true;
+						
+						msg.put("event", "NEW ROOM");
+						msg.put("room", sala);
+						player.getSession().sendMessage(new TextMessage(msg.toString()));
+						break;
 					}
 				}
-				msg.put("event", "NEW ROOM");
-				msg.put("room", sala);
-				player.getSession().sendMessage(new TextMessage(msg.toString()));
+				
+				if (!found) {
+					msg.put("event", "NEW ROOM");
+					msg.put("room", -1);
+					player.getSession().sendMessage(new TextMessage(msg.toString()));
+				}
 				break;
 			case "GET ROOMS":
 				ArrayNode arrayNodeRooms = mapper.createArrayNode();
@@ -105,6 +117,9 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				player.getSession().sendMessage(new TextMessage(msg.toString()));
 				break;
 			case "UPDATE MOVEMENT":
+				if (player.getHealth() <= 0) {
+					break;
+				}
 				if (player.getThruster() > 0) {
 					player.loadMovement(node.path("movement").get("thrust").asBoolean(),
 							node.path("movement").get("brake").asBoolean(),

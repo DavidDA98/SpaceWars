@@ -8,7 +8,7 @@ window.onload = function() {
 		DEBUG_MODE : true,
 		socket : null,
 		myPlayer : {health : 100, ammo : 8, thruster : 500},
-		rooms : [],
+		rooms : undefined,
 		otherPlayers : [],
 		projectiles : []
 	}
