@@ -1,14 +1,15 @@
 package spacewar;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -29,10 +30,16 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 	private AtomicInteger playerId = new AtomicInteger(0);
 	private AtomicInteger projectileId = new AtomicInteger(0);
 	
-	private Map<Room, SpacewarGame> rooms = new HashMap<>();
-	private Set<WebSocketSession> sesiones = new HashSet<>();
+	private ConcurrentMap<Room, SpacewarGame> rooms = new ConcurrentHashMap<>();
+	private CopyOnWriteArraySet<WebSocketSession> sesiones = new CopyOnWriteArraySet<>();
 	
 	private ScheduledExecutorService scheduler;
+	
+	private Lock mensLock = new ReentrantLock();
+	private Lock roomLock = new ReentrantLock();
+	private Lock playersLock = new ReentrantLock();
+	private Lock startSession = new ReentrantLock();
+	private Lock endSession = new ReentrantLock();
 
 	@Override
 	public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -46,10 +53,14 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 		msg.put("id", player.getPlayerId());
 		msg.put("shipType", player.getShipType());
 		player.getSession().sendMessage(new TextMessage(msg.toString()));
-		
-		if (scheduler == null) {
-			scheduler = Executors.newScheduledThreadPool(1);
-			scheduler.scheduleAtFixedRate(() -> updateChatUsers(), 1, 1, TimeUnit.SECONDS);
+		startSession.lock();
+		try {
+			if (scheduler == null) {
+				scheduler = Executors.newScheduledThreadPool(1);
+				scheduler.scheduleAtFixedRate(() -> updateChatUsers(), 1, 1, TimeUnit.SECONDS);
+			}
+		}finally {
+			startSession.unlock();
 		}
 	}
 
@@ -85,20 +96,24 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				player.setShipType(node.get("ship").asText());
 				break;
 			case "CREATE ROOM":
-				for(Room r: rooms.keySet()) {
-					if (node.get("name").asText() == r.getRoomId()) {
-						msg.put("event", "NEW ROOM");
-						msg.put("name", -1);
-						player.getSession().sendMessage(new TextMessage(msg.toString()));
-						break;
+				roomLock.lock();
+				try {
+					for(Room r: rooms.keySet()) {
+						if (node.get("name").asText() == r.getRoomId()) {
+							msg.put("event", "NEW ROOM");
+							msg.put("name", -1);
+							player.getSession().sendMessage(new TextMessage(msg.toString()));
+							break;
+						}
 					}
+					room = new Room(node.get("name").asText(), node.get("mode").asInt(), node.get("maxPlayers").asInt(), node.get("difficulty").asInt());
+					session.getAttributes().put(ROOM_ATTRIBUTE, room);
+				
+					swg = SpacewarGame.INSTANCE;
+					swg.addPlayer(player);
+				}finally {
+					roomLock.unlock();
 				}
-				room = new Room(node.get("name").asText(), node.get("mode").asInt(), node.get("maxPlayers").asInt(), node.get("difficulty").asInt());
-				session.getAttributes().put(ROOM_ATTRIBUTE, room);
-				
-				swg = SpacewarGame.INSTANCE;
-				swg.addPlayer(player);
-				
 				rooms.put(room, swg);
 				
 				msg.put("event", "NEW ROOM");
@@ -115,7 +130,18 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 					if (sala.equals(r.getRoomId())) {
 						session.getAttributes().put(ROOM_ATTRIBUTE, r);
 						swg = rooms.get(r);
-						swg.addPlayer(player);
+						playersLock.lock();
+						try {
+							if (room.getMaxPlayers() < room.getCurrentPlayers()) {
+								swg.addPlayer(player);
+								currentPlayers++;
+								//lo he intentado llamando a un método que he creado que se llama updateCurrentPlayers,
+								//que simplemente aumenta en 1 esa variable desde room, pero me da error en room
+								//me dice que no debería estar inicializada (room)
+							}
+						}finally {
+							playersLock.unlock();
+						}
 						
 						found = true;
 						
@@ -203,8 +229,13 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 		sesiones.remove(session);
 		
 		if (sesiones.isEmpty()) {
-			scheduler.shutdown();
-			scheduler = null;
+			endSession.lock();
+			try {
+				scheduler.shutdown();
+				scheduler = null;
+			}finally {
+				endSession.unLock();
+			}
 		}
 	}
 	
@@ -229,10 +260,15 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				arrayNodeUsuarios.addPOJO(jsonUsuario);
 			}
 			msg.putPOJO("usuarios", arrayNodeUsuarios);
-			
-			for(WebSocketSession s : sesiones) {
-				s.sendMessage(new TextMessage(msg.toString()));
+			mensLock.lock();
+			try {
+				for(WebSocketSession s : sesiones) {
+					s.sendMessage(new TextMessage(msg.toString()));
+				}
+			}finally {
+				mensLock.unlock();
 			}
+			
 		} catch (IOException e) {}
 	}
 }

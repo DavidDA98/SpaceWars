@@ -94,7 +94,8 @@ public class SpacewarGame {
 		}
 	}
 
-	private void tick() {
+	//no tengo del todo claro que con ese synchronized se solucionen 100% los problems
+	private synchronized void tick() {
 		ObjectNode json = mapper.createObjectNode();
 		ArrayNode arrayNodePlayers = mapper.createArrayNode();
 		ArrayNode arrayNodeProjectiles = mapper.createArrayNode();

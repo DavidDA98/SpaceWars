@@ -8,7 +8,7 @@ Spacewar.roomState.prototype = {
 
 	init : function() {
 		if (game.global.DEBUG_MODE) {
-			console.log("[DEBUG] Entering **ROOM** state");
+			console.log("[DEBUG] Entering *ROOM* state");
 		}
 	},
 
@@ -44,13 +44,22 @@ Spacewar.roomState.prototype = {
 			font: "24px Arial",
 			fill: "#ffff66"
 		}); Esto debería mostrar el número de jugadores en la sala en ese momento, pero ese dato nos lo tiene que dar el server
+		Con la variable de currentPlayers debería bastar, pero hay que irla actualizando
 		countDown = game.time.events.add(Phaser.Timer.SECOND * 60, game.state.start('gameState'), this);
 		Una cuenta atrás para señalar cuando empezará la partida*/
+		start = game.add.button(475, 480, 'boton', botonStart, this, 1, 0);
+		textNextButton = game.add.text(505, 480, "START", {
+			font: "24px Arial",
+			fill: "#000000"
+		})
 	},
 
 	update : function() {
-		if (enter.isDown) {
-			game.state.start('gameState')// cuando se controle bien el timer esto se quita
-		}
+		
 	}
+}
+
+
+function botonStart(){
+	game.state.start('gameState')
 }
