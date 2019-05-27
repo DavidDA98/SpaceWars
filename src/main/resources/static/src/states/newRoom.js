@@ -3,7 +3,7 @@ Spacewar.newRoomState = function(game) {
 }
 
 var deletedChar = false;
-var modo = "Modo 1";
+var modo = "Clásico";
 var nummode = 0;
 var dificultad = 1;
 var modetext;
@@ -31,14 +31,14 @@ Spacewar.newRoomState.prototype = {
 			fill: "#ffff66"
 		});
 
-		game.add.button(500, 500, 'boton', gamemode, this, 1, 0);
-		modetext = game.add.text(250, 300, modo, {
+		game.add.button(100, 400, 'boton', gamemode, this, 1, 0);
+		modetext = game.add.text(300, 400, modo, {
 			font: "24px Arial",
 			fill: "#FFFFFF"
 		})
 
-		game.add.button(500, 500, 'boton', difficultylevel, this, 1, 0);
-		difficultytext = game.add.text(750, 300, dificultad, {
+		game.add.button(700, 400, 'boton', difficultylevel, this, 1, 0);
+		difficultytext = game.add.text(900, 400, dificultad, {
 			font: "24px Arial",
 			fill: "#FFFFFF"
 		})
@@ -86,33 +86,38 @@ function createRoom(){
 
 function gamemode(){
 	if(nummode == 0){
-		modetext = undefined;
-		modo = "Modo 2";
-		modetext = game.add.text(250, 300, modo, {
+		modetext.destroy();
+		modo = "Battle Royale";
+		modetext = game.add.text(300, 400, modo, {
 			font: "24px Arial",
 			fill: "#FFFFFF"
 		});
 		nummode = 1;
 	}
 	else if(nummode == 1){
-		modo = "Modo 1"
-		numode = 0;
+		modetext.destroy();
+		modo = "Clásico";
+		modetext = game.add.text(300, 400, modo, {
+			font: "24px Arial",
+			fill: "#FFFFFF"
+		});
+		nummode = 0;
 	}
 }
 
 function difficultylevel(){
 	if(dificultad < 5){
-		difficultytext = undefined;
+		difficultytext.destroy();
 		dificultad++;
-		difficultytext = game.add.text(750, 300, dificultad, {
+		difficultytext = game.add.text(900, 400, dificultad, {
 			font: "24px Arial",
 			fill: "#FFFFFF"
 		})
 	}
 	else if(dificultad == 5){
-		difficultytext = undefined;
+		difficultytext.destroy();
 		dificultad = 1;
-		difficultytext = game.add.text(750, 300, dificultad, {
+		difficultytext = game.add.text(900, 400, dificultad, {
 			font: "24px Arial",
 			fill: "#FFFFFF"
 		})

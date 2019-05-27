@@ -24,6 +24,7 @@ Spacewar.preloadState.prototype = {
 		game.load.image('atras', 'assets/interface/atras.png')
 		game.load.image('aleatorio', 'assets/interface/aleatorio.png')
 		game.load.image('refresh', 'assets/interface/refrescar.png')
+		game.load.image('menos_salas', 'assets/interface/anteriores.png')
 	},
 
 	create : function() {

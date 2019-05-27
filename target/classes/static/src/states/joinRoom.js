@@ -19,7 +19,8 @@ Spacewar.joinRoomState.prototype = {
 	},
 
 	create : function() {
-		game.add.button(400, 500, 'mas_salas', morerooms, this, 1, 0);
+		game.add.button(700, 500, 'mas_salas', morerooms, this, 1, 0);
+		game.add.button(200, 500, 'menos_salas', lessrooms, this, 1, 0);
 		game.add.button(10, 10, 'atras', back, this, 1, 0);
 		game.add.button(900, 10, 'aleatorio', random, this, 1, 0);
 		game.add.button(400, 10, 'refresh', refresh, this, 1, 0);
@@ -76,11 +77,21 @@ function refresh(){
 }
 
 function showonscreen(){
+	if(arraybuttons != undefined){
+		for(i = 0; i < 8; i++){
+			arraybuttons[i].destroy();
+			arraybuttons[i] = undefined;
+			if(arraytexts != undefined){
+				arraytexts[i].destroy();
+				arraytexts[i] = undefined;
+			}
+		}
+	}
 	for(i = 0; i < 8; i++){
 		if(game.global.rooms.length > i + page){
 			arraybuttons[i] = game.add.button(50, 100, 'boton');
 			arraybuttons[i].onInputDown.add(join, this, 0, game.global.rooms[i + page].name);
-			game.add.text(150, 100, game.global.rooms[i + page].name, {
+			arraytexts[i] = game.add.text(150, 100, game.global.rooms[i + page].name, {
 				font: "24px Arial",
 				fill: "#FFFFFF"
 			})
@@ -91,6 +102,13 @@ function showonscreen(){
 function morerooms() {
 	if(game.global.rooms.length > 8 + page){
 		page += 8;
+		showonscreen();
+	}
+}
+
+function lessrooms() {
+	if(page != 0){
+		page -= 8;
 		showonscreen();
 	}
 }

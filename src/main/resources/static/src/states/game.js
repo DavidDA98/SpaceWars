@@ -144,5 +144,5 @@ Spacewar.gameState.prototype = {
 	}
 }
 function botonExit(){
-	game.state.start('scoreState')
+	game.state.start('menuState')
 }
