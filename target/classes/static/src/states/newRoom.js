@@ -6,6 +6,7 @@ var deletedChar = false;
 var modo = "Clásico";
 var nummode = 0;
 var dificultad = 1;
+var limiteJugadores = 2;
 var modetext;
 var difficultytext;
 
@@ -59,7 +60,7 @@ Spacewar.newRoomState.prototype = {
 		}
 		
 		if (roomName == game.global.myPlayer.room.name) {
-			game.state.start('matchmakingState');
+			game.state.start('roomState');
 		}
 	}
 }
@@ -77,8 +78,8 @@ function createRoom(){
 				event : 'CREATE ROOM',
 				name : roomName,
 				mode : nummode,
-				maxPlayers : 2,
-				difficulty : 5
+				maxPlayers : limiteJugadores,
+				difficulty : dificultad
 			}
 		game.global.socket.send(JSON.stringify(message))
 	}
@@ -93,6 +94,7 @@ function gamemode(){
 			fill: "#FFFFFF"
 		});
 		nummode = 1;
+		limiteJugadores = 10;
 	}
 	else if(nummode == 1){
 		modetext.destroy();
@@ -102,6 +104,7 @@ function gamemode(){
 			fill: "#FFFFFF"
 		});
 		nummode = 0;
+		limiteJugadores = 2;
 	}
 }
 

@@ -32,6 +32,23 @@ window.onload = function() {
 		var msg = JSON.parse(message.data)
 		
 		switch (msg.event) {
+		case 'NEW MESSAGE':
+			if (game.global.DEBUG_MODE) {
+				console.log('[DEBUG] NEW MESSAGE message recieved')
+				console.dir(msg)
+			}
+			document.getElementById("chat").innerHTML = msg.message + "<br/>" + document.getElementById("chat").innerHTML;
+			break
+		case 'updateChatUsers':
+			if (game.global.DEBUG_MODE) {
+				console.log('[DEBUG] updateChatUsers message recieved')
+				console.dir(msg)
+			}
+			document.getElementById("jugadores").innerHTML = "";
+			for (var usuario of msg.usuarios) {
+				document.getElementById("jugadores").innerHTML = document.getElementById("jugadores").innerHTML + usuario.name + "<br/>" + usuario.room + "<br/>";
+			}
+			break
 		case 'JOIN':
 			if (game.global.DEBUG_MODE) {
 				console.log('[DEBUG] JOIN message recieved')
@@ -49,7 +66,10 @@ window.onload = function() {
 				console.dir(msg)
 			}
 			game.global.myPlayer.room = {
-					name : msg.room
+					name : msg.name,
+					mode : msg.mode,
+					maxPlayers : msg.maxPlayers,
+					difficulty : msg.difficulty
 			}
 			break
 		case 'GET ROOMS' :
@@ -73,6 +93,7 @@ window.onload = function() {
 						game.global.myPlayer.health = player.health
 						game.global.myPlayer.ammo = player.ammo
 						game.global.myPlayer.thruster = player.thruster
+						game.global.myPlayer.score = player.score
 					} else {
 						if (typeof game.global.otherPlayers[player.id] == 'undefined') {
 							game.global.otherPlayers[player.id] = {
@@ -134,6 +155,7 @@ window.onload = function() {
 	game.state.add('matchmakingState', Spacewar.matchmakingState)
 	game.state.add('roomState', Spacewar.roomState)
 	game.state.add('gameState', Spacewar.gameState)
+	game.state.add('scoreState', Spacewar.scoreState)
 
 	game.state.start('bootState')
 

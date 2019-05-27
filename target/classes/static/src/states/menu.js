@@ -36,5 +36,5 @@ Spacewar.menuState.prototype = {
 	}
 }
 function botonPlay () {
-	game.state.start('createPlayerState')
+	game.state.start('chooseRoomState')
 }

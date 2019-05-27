@@ -1,7 +1,13 @@
 package spacewar;
 
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.web.socket.CloseStatus;
@@ -24,17 +30,27 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 	private AtomicInteger projectileId = new AtomicInteger(0);
 	
 	private Map<Room, SpacewarGame> rooms = new HashMap<>();
+	private Set<WebSocketSession> sesiones = new HashSet<>();
+	
+	private ScheduledExecutorService scheduler;
 
 	@Override
 	public void afterConnectionEstablished(WebSocketSession session) throws Exception {
 		Player player = new Player(playerId.incrementAndGet(), session);
 		session.getAttributes().put(PLAYER_ATTRIBUTE, player);
 		
+		sesiones.add(session);
+		
 		ObjectNode msg = mapper.createObjectNode();
 		msg.put("event", "JOIN");
 		msg.put("id", player.getPlayerId());
 		msg.put("shipType", player.getShipType());
 		player.getSession().sendMessage(new TextMessage(msg.toString()));
+		
+		if (scheduler == null) {
+			scheduler = Executors.newScheduledThreadPool(1);
+			scheduler.scheduleAtFixedRate(() -> updateChatUsers(), 1, 1, TimeUnit.SECONDS);
+		}
 	}
 
 	@Override
@@ -47,6 +63,17 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 			Room room;
 
 			switch (node.get("event").asText()) {
+			case "NEW MESSAGE":
+				String chatMsg;
+				chatMsg = node.get("sender").asText() + ": " + node.get("message").asText();
+
+				msg.put("event", "NEW MESSAGE");
+				msg.put("message", chatMsg);
+				
+				for(WebSocketSession s : sesiones) {
+					s.sendMessage(new TextMessage(msg.toString()));
+				}
+				break;
 			case "JOIN":
 				msg.put("event", "JOIN");
 				msg.put("id", player.getPlayerId());
@@ -61,7 +88,7 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				for(Room r: rooms.keySet()) {
 					if (node.get("name").asText() == r.getRoomId()) {
 						msg.put("event", "NEW ROOM");
-						msg.put("room", -1);
+						msg.put("name", -1);
 						player.getSession().sendMessage(new TextMessage(msg.toString()));
 						break;
 					}
@@ -75,7 +102,10 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				rooms.put(room, swg);
 				
 				msg.put("event", "NEW ROOM");
-				msg.put("room", room.getRoomId());
+				msg.put("name", room.getRoomId());
+				msg.put("mode", room.getMode());
+				msg.put("maxPlayers", room.getMaxPlayers());
+				msg.put("difficulty", room.getDifficulty());
 				player.getSession().sendMessage(new TextMessage(msg.toString()));
 				break;
 			case "JOIN ROOM":
@@ -90,7 +120,10 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 						found = true;
 						
 						msg.put("event", "NEW ROOM");
-						msg.put("room", sala);
+						msg.put("name", r.getRoomId());
+						msg.put("mode", r.getMode());
+						msg.put("maxPlayers", r.getMaxPlayers());
+						msg.put("difficulty", r.getDifficulty());
 						player.getSession().sendMessage(new TextMessage(msg.toString()));
 						break;
 					}
@@ -98,7 +131,7 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				
 				if (!found) {
 					msg.put("event", "NEW ROOM");
-					msg.put("room", -1);
+					msg.put("name", -1);
 					player.getSession().sendMessage(new TextMessage(msg.toString()));
 				}
 				break;
@@ -166,5 +199,40 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 			msg.put("id", player.getPlayerId());
 			swg.broadcast(msg.toString());
 		}
+		
+		sesiones.remove(session);
+		
+		if (sesiones.isEmpty()) {
+			scheduler.shutdown();
+			scheduler = null;
+		}
+	}
+	
+	private void updateChatUsers() {
+		try {
+			ObjectNode msg = mapper.createObjectNode();
+			ArrayNode arrayNodeUsuarios = mapper.createArrayNode();
+			
+			msg.put("event", "updateChatUsers");
+			for (WebSocketSession session : sesiones) {
+				Player player = (Player) session.getAttributes().get(PLAYER_ATTRIBUTE);
+				
+				ObjectNode jsonUsuario = mapper.createObjectNode();
+				jsonUsuario.put("name", player.getUsername());
+				
+				if (session.getAttributes().get(ROOM_ATTRIBUTE) instanceof Room) {
+					Room room = (Room) session.getAttributes().get(ROOM_ATTRIBUTE);
+					jsonUsuario.put("room", "En sala: " + room.getRoomId());
+				} else {
+					jsonUsuario.put("room", "En menus");
+				}
+				arrayNodeUsuarios.addPOJO(jsonUsuario);
+			}
+			msg.putPOJO("usuarios", arrayNodeUsuarios);
+			
+			for(WebSocketSession s : sesiones) {
+				s.sendMessage(new TextMessage(msg.toString()));
+			}
+		} catch (IOException e) {}
 	}
 }

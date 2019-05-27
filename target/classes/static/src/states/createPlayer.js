@@ -46,6 +46,8 @@ var red4;
 var red5;
 var red6;
 
+var usuario = "";
+
 Spacewar.createPlayerState.prototype = {
 
 	init : function() {
@@ -344,9 +346,6 @@ Spacewar.createPlayerState.prototype = {
 		red6.inputEnabled = true;
 		red6.input.pixelPerfectClick = true;
 		red6.events.onInputDown.add(changeImage, this);
-		
-		
-		
 	},
 
 	update : function() {
@@ -355,9 +354,9 @@ Spacewar.createPlayerState.prototype = {
 			deletedChar = false;
 		}
 		if (backSpace.isDown && deletedChar == false){
-			if (game.global.myPlayer.name != null && game.global.myPlayer.name.length > 0) {
-				game.global.myPlayer.name = game.global.myPlayer.name.substring(0, game.global.myPlayer.name.length - 1);
-				text.setText("User name: " +game.global.myPlayer.name);
+			if (usuario != null && usuario.length > 0) {
+				usuario = usuario.substring(0, usuario.length - 1);
+				text.setText("User name: " + usuario);
 				
 			}
 			deletedChar = true;
@@ -365,9 +364,8 @@ Spacewar.createPlayerState.prototype = {
 	}
 }
 function keyPress(char){
-	game.global.myPlayer.name += char;
-	text.setText("User name: " +game.global.myPlayer.name);
-	
+	usuario += char;
+	text.setText("User name: " + usuario);
 }
 
 function changeImage(image){
@@ -377,6 +375,7 @@ function changeImage(image){
 }
 
 function botonNext(){
+	game.global.myPlayer.name = usuario;
 	let message = {
 			event : 'UPDATE PLAYER',
 			username : game.global.myPlayer.name,
@@ -384,5 +383,5 @@ function botonNext(){
 		}
 	game.global.socket.send(JSON.stringify(message));
 
-	game.state.start('chooseRoomState')
+	game.state.start('menuState')
 }

@@ -118,6 +118,7 @@ public class SpacewarGame {
 				jsonPlayer.put("health", player.getHealth());
 				jsonPlayer.put("ammo", player.getAmmo());
 				jsonPlayer.put("thruster", player.getThruster());
+				jsonPlayer.put("score", player.getScore());
 				arrayNodePlayers.addPOJO(jsonPlayer);
 			}
 
@@ -131,6 +132,14 @@ public class SpacewarGame {
 						// System.out.println("Player " + player.getPlayerId() + " was hit!!!");
 						player.setHealth(player.getHealth() - 20);
 						projectile.setHit(true);
+						
+						Player otherPlayer = players.get(projectile.getOwner().getSession().getId());
+						otherPlayer.setScore(otherPlayer.getScore() + 10);
+						
+						if (player.getHealth() == 0) {
+							otherPlayer.setScore(otherPlayer.getScore() + 100);
+						}
+						
 						break;
 					}
 				}

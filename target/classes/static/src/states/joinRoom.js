@@ -69,26 +69,26 @@ function back() {
 	game.state.start('chooseRoomState')
 }
 
-function random(){
-	join(room, event, game.global.rooms[Math.floor(Math.random() * game.global.rooms.length)]);
+function random() {
+	join(0, 0, game.global.rooms[Math.floor(Math.random() * game.global.rooms.length)].name);
 }
 function refresh(){
 	showonscreen();
 }
 
-function showonscreen(){
-	if(arraybuttons != undefined){
-		for(i = 0; i < 8; i++){
+function showonscreen() {
+	for(i = 0; i < 8; i++){
+		if(arraybuttons[i] != undefined) {
 			arraybuttons[i].destroy();
 			arraybuttons[i] = undefined;
-			if(arraytexts != undefined){
-				arraytexts[i].destroy();
-				arraytexts[i] = undefined;
-			}
+		}
+		if(arraytexts[i] != undefined) {
+			arraytexts[i].destroy();
+			arraytexts[i] = undefined;
 		}
 	}
-	for(i = 0; i < 8; i++){
-		if(game.global.rooms.length > i + page){
+	for(i = 0; i < 8; i++) {
+		if(game.global.rooms.length > i + page) {
 			arraybuttons[i] = game.add.button(50, 100, 'boton');
 			arraybuttons[i].onInputDown.add(join, this, 0, game.global.rooms[i + page].name);
 			arraytexts[i] = game.add.text(150, 100, game.global.rooms[i + page].name, {

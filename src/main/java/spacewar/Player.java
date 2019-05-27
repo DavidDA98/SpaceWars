@@ -6,6 +6,9 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 public class Player extends Spaceship {
+	private final int DEF_HEALTH = 100;
+	private final int DEF_AMMO = 8;
+	private final int DEF_THRUSTER = 500;
 
 	private final WebSocketSession session;
 	private final int playerId;
@@ -16,16 +19,19 @@ public class Player extends Spaceship {
 	private int ammo;
 	private int thruster;
 	
+	private int score;
 
 	public Player(int playerId, WebSocketSession session) {
 		this.playerId = playerId;
 		this.session = session;
 		this.shipType = this.getRandomShipType();
-		this.username = "Player " + playerId;
+		this.username = "Anonymous";
 		
-		this.health = 100;
-		this.ammo = 8;
-		this.thruster = 500;
+		this.health = DEF_HEALTH;
+		this.ammo = DEF_AMMO;
+		this.thruster = DEF_THRUSTER;
+		
+		this.score = 0;
 	}
 
 	public int getPlayerId() {
@@ -80,10 +86,26 @@ public class Player extends Spaceship {
 		this.thruster = thruster;
 	}
 
+	public int getScore() {
+		return score;
+	}
+
+	public void setScore(int score) {
+		this.score = score;
+	}
+
 	private String getRandomShipType() {
 		String[] randomShips = { "blue", "darkgrey", "green", "metalic", "orange", "purple", "red" };
 		String ship = (randomShips[new Random().nextInt(randomShips.length)]);
 		ship += "_0" + (new Random().nextInt(5) + 1) + ".png";
 		return ship;
+	}
+	
+	public void resetPlayer() {
+		health = DEF_HEALTH;
+		ammo = DEF_AMMO;
+		thruster = DEF_THRUSTER;
+		
+		score = 0;
 	}
 }
