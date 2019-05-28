@@ -375,13 +375,15 @@ function changeImage(image){
 }
 
 function botonNext(){
-	game.global.myPlayer.name = usuario;
-	let message = {
-			event : 'UPDATE PLAYER',
-			username : game.global.myPlayer.name,
-			ship : game.global.myPlayer.shipType
-		}
-	game.global.socket.send(JSON.stringify(message));
-
-	game.state.start('menuState')
+	if (usuario != "") {
+		game.global.myPlayer.name = usuario;
+		let message = {
+				event : 'UPDATE PLAYER',
+				username : game.global.myPlayer.name,
+				ship : game.global.myPlayer.shipType
+			}
+		game.global.socket.send(JSON.stringify(message));
+	
+		game.state.start('menuState')
+	}
 }

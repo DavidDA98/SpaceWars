@@ -24,10 +24,20 @@ Spacewar.scoreState.prototype = {
 			font: "24px Arial",
 			fill: "#000000"
 		})
+		
+		let message = {
+			event : 'LEAVE ROOM'
+		}
+		
+		game.global.socket.send(JSON.stringify(message));
+		
+		let arrayVacio = [];
+		game.global.otherPlayers = arrayVacio;
+		game.global.otherPlayers.length = 0;
 	},
 
 	update : function() {
-        
+        finalPunt.setText("Final Score: " + game.global.myPlayer.score);
 	}
 }
 

@@ -1,5 +1,6 @@
 package spacewar;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
@@ -33,11 +34,20 @@ public class SpacewarGame {
 	private Map<Integer, Projectile> projectiles = new ConcurrentHashMap<>();
 	private AtomicInteger numPlayers = new AtomicInteger();
 
-	private SpacewarGame() {
+	public SpacewarGame() {
 
 	}
 
 	public void addPlayer(Player player) {
+		ObjectNode msg;
+		synchronized(mapper) {
+			msg = mapper.createObjectNode();
+		}
+		
+		msg.put("event", "NEW PLAYER");
+		
+		this.broadcast(msg.toString());
+		
 		players.put(player.getSession().getId(), player);
 
 		int count = numPlayers.getAndIncrement();
@@ -50,12 +60,29 @@ public class SpacewarGame {
 		return players.values();
 	}
 
-	public void removePlayer(Player player) {
+	public void removePlayer(Player player, boolean updateSelf) {
 		players.remove(player.getSession().getId());
 
 		int count = this.numPlayers.decrementAndGet();
 		if (count == 0) {
 			this.stopGameLoop();
+		}
+		
+		ObjectNode msg;
+		synchronized(mapper) {
+			msg = mapper.createObjectNode();
+		}
+		
+		msg.put("event", "REMOVE PLAYER");
+		msg.put("id", player.getPlayerId());
+		
+		this.broadcast(msg.toString());
+		if (updateSelf) {
+			try {
+				synchronized(player.getSession()) {
+					player.getSession().sendMessage(new TextMessage(msg.toString()));
+				}
+			} catch (IOException e) {}
 		}
 	}
 
@@ -68,7 +95,7 @@ public class SpacewarGame {
 	}
 
 	public void removeProjectile(Projectile projectile) {
-		players.remove(projectile.getId(), projectile);
+		projectiles.remove(projectile.getId(), projectile);
 	}
 
 	public void startGameLoop() {
@@ -85,20 +112,26 @@ public class SpacewarGame {
 	public void broadcast(String message) {
 		for (Player player : getPlayers()) {
 			try {
-				player.getSession().sendMessage(new TextMessage(message.toString()));
+				synchronized(player.getSession()) {
+					player.getSession().sendMessage(new TextMessage(message.toString()));
+				}
 			} catch (Throwable ex) {
 				System.err.println("Execption sending message to player " + player.getSession().getId());
 				ex.printStackTrace(System.err);
-				this.removePlayer(player);
+				this.removePlayer(player, false);
 			}
 		}
 	}
 
-	//no tengo del todo claro que con ese synchronized se solucionen 100% los problems
-	private synchronized void tick() {
-		ObjectNode json = mapper.createObjectNode();
-		ArrayNode arrayNodePlayers = mapper.createArrayNode();
-		ArrayNode arrayNodeProjectiles = mapper.createArrayNode();
+	private void tick() {
+		ObjectNode json;
+		ArrayNode arrayNodePlayers;
+		ArrayNode arrayNodeProjectiles;
+		synchronized(mapper) {
+			json = mapper.createObjectNode();
+			arrayNodePlayers = mapper.createArrayNode();
+			arrayNodeProjectiles = mapper.createArrayNode();
+		}
 
 		long thisInstant = System.currentTimeMillis();
 		Set<Integer> bullets2Remove = new HashSet<>();
@@ -109,7 +142,10 @@ public class SpacewarGame {
 			for (Player player : getPlayers()) {
 				player.calculateMovement();
 
-				ObjectNode jsonPlayer = mapper.createObjectNode();
+				ObjectNode jsonPlayer;
+				synchronized(mapper) {
+					jsonPlayer = mapper.createObjectNode();
+				}
 				jsonPlayer.put("id", player.getPlayerId());
 				jsonPlayer.put("name", player.getUsername());
 				jsonPlayer.put("shipType", player.getShipType());
@@ -139,13 +175,17 @@ public class SpacewarGame {
 						
 						if (player.getHealth() == 0) {
 							otherPlayer.setScore(otherPlayer.getScore() + 100);
+							this.removePlayer(player, true);
 						}
 						
 						break;
 					}
 				}
 
-				ObjectNode jsonProjectile = mapper.createObjectNode();
+				ObjectNode jsonProjectile;
+				synchronized(mapper) {
+					jsonProjectile = mapper.createObjectNode();
+				}
 				jsonProjectile.put("id", projectile.getId());
 
 				if (!projectile.isHit() && projectile.isAlive(thisInstant)) {
@@ -177,9 +217,5 @@ public class SpacewarGame {
 		} catch (Throwable ex) {
 
 		}
-	}
-
-	public void handleCollision() {
-
 	}
 }

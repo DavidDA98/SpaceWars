@@ -92,14 +92,6 @@ Spacewar.gameState.prototype = {
 			fill: "#ffff66"
 		});
 		propulsorUI.fixedToCamera = true;
-
-		exit = game.add.button(900, 490, 'boton', botonExit, this, 1, 0);
-		textExitButton = game.add.text(902, 488, "Exit", {
-			font: "24px Arial",
-			fill: "#000000"
-		})
-		
-
 	},
 
 	update : function() {
@@ -142,7 +134,4 @@ Spacewar.gameState.prototype = {
 		lifeUI.x = game.global.myPlayer.image.x;
 		lifeUI.y = game.global.myPlayer.image.y + 5;
 	}
-}
-function botonExit(){
-	game.state.start('scoreState')
 }

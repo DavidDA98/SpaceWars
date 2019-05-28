@@ -1,8 +1,9 @@
 package spacewar;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -30,16 +31,14 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 	private AtomicInteger playerId = new AtomicInteger(0);
 	private AtomicInteger projectileId = new AtomicInteger(0);
 	
-	private ConcurrentMap<Room, SpacewarGame> rooms = new ConcurrentHashMap<>();
-	private CopyOnWriteArraySet<WebSocketSession> sesiones = new CopyOnWriteArraySet<>();
+	private Map<Room, SpacewarGame> rooms = new ConcurrentHashMap<>();
+	private Set<WebSocketSession> sesiones = new CopyOnWriteArraySet<>();
 	
 	private ScheduledExecutorService scheduler;
-	
-	private Lock mensLock = new ReentrantLock();
+
 	private Lock roomLock = new ReentrantLock();
 	private Lock playersLock = new ReentrantLock();
-	private Lock startSession = new ReentrantLock();
-	private Lock endSession = new ReentrantLock();
+	private Lock schedulerLock = new ReentrantLock();
 
 	@Override
 	public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -47,28 +46,36 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 		session.getAttributes().put(PLAYER_ATTRIBUTE, player);
 		
 		sesiones.add(session);
-		
-		ObjectNode msg = mapper.createObjectNode();
+		ObjectNode msg;
+		synchronized(mapper) {
+			msg = mapper.createObjectNode();
+		}
 		msg.put("event", "JOIN");
 		msg.put("id", player.getPlayerId());
 		msg.put("shipType", player.getShipType());
-		player.getSession().sendMessage(new TextMessage(msg.toString()));
-		startSession.lock();
+		synchronized(session) {
+			player.getSession().sendMessage(new TextMessage(msg.toString()));
+		}
+		schedulerLock.lock();
 		try {
 			if (scheduler == null) {
 				scheduler = Executors.newScheduledThreadPool(1);
 				scheduler.scheduleAtFixedRate(() -> updateChatUsers(), 1, 1, TimeUnit.SECONDS);
 			}
 		}finally {
-			startSession.unlock();
+			schedulerLock.unlock();
 		}
 	}
 
 	@Override
 	protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
 		try {
-			JsonNode node = mapper.readTree(message.getPayload());
-			ObjectNode msg = mapper.createObjectNode();
+			JsonNode node;
+			ObjectNode msg;
+			synchronized(mapper) {
+				node = mapper.readTree(message.getPayload());
+				msg = mapper.createObjectNode();
+			}
 			Player player = (Player) session.getAttributes().get(PLAYER_ATTRIBUTE);
 			SpacewarGame swg;
 			Room room;
@@ -82,14 +89,18 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				msg.put("message", chatMsg);
 				
 				for(WebSocketSession s : sesiones) {
-					s.sendMessage(new TextMessage(msg.toString()));
+					synchronized(s) {
+						s.sendMessage(new TextMessage(msg.toString()));
+					}
 				}
 				break;
 			case "JOIN":
 				msg.put("event", "JOIN");
 				msg.put("id", player.getPlayerId());
 				msg.put("shipType", player.getShipType());
-				player.getSession().sendMessage(new TextMessage(msg.toString()));
+				synchronized(player.getSession()) {
+					player.getSession().sendMessage(new TextMessage(msg.toString()));
+				}
 				break;
 			case "UPDATE PLAYER":
 				player.setUsername(node.get("username").asText()); 
@@ -102,55 +113,70 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 						if (node.get("name").asText() == r.getRoomId()) {
 							msg.put("event", "NEW ROOM");
 							msg.put("name", -1);
-							player.getSession().sendMessage(new TextMessage(msg.toString()));
+							synchronized(player.getSession()) {
+								player.getSession().sendMessage(new TextMessage(msg.toString()));
+							}
 							break;
 						}
 					}
 					room = new Room(node.get("name").asText(), node.get("mode").asInt(), node.get("maxPlayers").asInt(), node.get("difficulty").asInt());
 					session.getAttributes().put(ROOM_ATTRIBUTE, room);
 				
-					swg = SpacewarGame.INSTANCE;
+					swg = new SpacewarGame();
 					swg.addPlayer(player);
+					rooms.put(room, swg);
 				}finally {
 					roomLock.unlock();
 				}
-				rooms.put(room, swg);
 				
 				msg.put("event", "NEW ROOM");
 				msg.put("name", room.getRoomId());
 				msg.put("mode", room.getMode());
 				msg.put("maxPlayers", room.getMaxPlayers());
 				msg.put("difficulty", room.getDifficulty());
-				player.getSession().sendMessage(new TextMessage(msg.toString()));
+				msg.put("numPlayers", room.getCurrentPlayers());
+				
+				player.resetPlayer();
+				synchronized(player.getSession()) {
+					player.getSession().sendMessage(new TextMessage(msg.toString()));
+				}
 				break;
 			case "JOIN ROOM":
 				boolean found = false;
 				String sala = node.get("room").asText();
 				for(Room r: rooms.keySet()) {
 					if (sala.equals(r.getRoomId())) {
+						found = true;
 						session.getAttributes().put(ROOM_ATTRIBUTE, r);
 						swg = rooms.get(r);
 						playersLock.lock();
 						try {
-							if (room.getMaxPlayers() < room.getCurrentPlayers()) {
+							if (r.getMaxPlayers() > r.getCurrentPlayers()) {
 								swg.addPlayer(player);
-								currentPlayers++;
-								//lo he intentado llamando a un método que he creado que se llama updateCurrentPlayers,
-								//que simplemente aumenta en 1 esa variable desde room, pero me da error en room
-								//me dice que no debería estar inicializada (room)
+								r.updateCurrentPlayers(1);
+								if (r.getMaxPlayers() == r.getCurrentPlayers()) {
+									r.setFull(true);
+								}
+							} else {
+								found = false;
 							}
 						}finally {
 							playersLock.unlock();
 						}
 						
-						found = true;
-						
-						msg.put("event", "NEW ROOM");
-						msg.put("name", r.getRoomId());
-						msg.put("mode", r.getMode());
-						msg.put("maxPlayers", r.getMaxPlayers());
-						msg.put("difficulty", r.getDifficulty());
-						player.getSession().sendMessage(new TextMessage(msg.toString()));
+						if (found) {
+							msg.put("event", "NEW ROOM");
+							msg.put("name", r.getRoomId());
+							msg.put("mode", r.getMode());
+							msg.put("maxPlayers", r.getMaxPlayers());
+							msg.put("difficulty", r.getDifficulty());
+							msg.put("numPlayers", r.getCurrentPlayers());
+							
+							player.resetPlayer();
+							synchronized(player.getSession()) {
+								player.getSession().sendMessage(new TextMessage(msg.toString()));
+							}
+						}
 						break;
 					}
 				}
@@ -158,22 +184,46 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				if (!found) {
 					msg.put("event", "NEW ROOM");
 					msg.put("name", -1);
-					player.getSession().sendMessage(new TextMessage(msg.toString()));
+					synchronized(player.getSession()) {
+						player.getSession().sendMessage(new TextMessage(msg.toString()));
+					}
 				}
 				break;
+			case "LEAVE ROOM":
+				room = (Room) session.getAttributes().get(ROOM_ATTRIBUTE);
+				
+				synchronized(room) {
+					room.updateCurrentPlayers(-1);
+					if (room.getCurrentPlayers() == 0) {
+						rooms.remove(room).stopGameLoop();
+					}
+				}
+				
+				player.getSession().getAttributes().put(ROOM_ATTRIBUTE, "");
+				break;
 			case "GET ROOMS":
-				ArrayNode arrayNodeRooms = mapper.createArrayNode();
+				ArrayNode arrayNodeRooms;
+				synchronized(mapper) {
+					arrayNodeRooms = mapper.createArrayNode();
+				}
 				msg.put("event", "GET ROOMS");
 				for(Room r: rooms.keySet()) {
-					ObjectNode jsonRoom = mapper.createObjectNode();
-					jsonRoom.put("name", r.getRoomId());
-					jsonRoom.put("mode", r.getMode());
-					jsonRoom.put("maxPlayers", r.getMaxPlayers());
-					jsonRoom.put("difficulty", r.getDifficulty());
-					arrayNodeRooms.addPOJO(jsonRoom);
+					if (!r.isFull()) {
+						ObjectNode jsonRoom;
+						synchronized(mapper) {
+							jsonRoom = mapper.createObjectNode();
+						}
+						jsonRoom.put("name", r.getRoomId());
+						jsonRoom.put("mode", r.getMode());
+						jsonRoom.put("maxPlayers", r.getMaxPlayers());
+						jsonRoom.put("difficulty", r.getDifficulty());
+						arrayNodeRooms.addPOJO(jsonRoom);
+					}
 				}
 				msg.putPOJO("rooms", arrayNodeRooms);
-				player.getSession().sendMessage(new TextMessage(msg.toString()));
+				synchronized(player.getSession()) {
+					player.getSession().sendMessage(new TextMessage(msg.toString()));
+				}
 				break;
 			case "UPDATE MOVEMENT":
 				if (player.getHealth() <= 0) {
@@ -218,57 +268,57 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 		if (session.getAttributes().get(ROOM_ATTRIBUTE) instanceof Room) {
 			Room room = (Room) session.getAttributes().get(ROOM_ATTRIBUTE);
 			SpacewarGame swg = rooms.get(room);
-			swg.removePlayer(player);
-			
-			ObjectNode msg = mapper.createObjectNode();
-			msg.put("event", "REMOVE PLAYER");
-			msg.put("id", player.getPlayerId());
-			swg.broadcast(msg.toString());
+			swg.removePlayer(player, false);
 		}
 		
 		sesiones.remove(session);
 		
-		if (sesiones.isEmpty()) {
-			endSession.lock();
-			try {
+		schedulerLock.lock();
+		try {
+			if (sesiones.isEmpty()) {
 				scheduler.shutdown();
 				scheduler = null;
-			}finally {
-				endSession.unLock();
 			}
+		} finally {
+			schedulerLock.unlock();
 		}
 	}
 	
 	private void updateChatUsers() {
-		try {
-			ObjectNode msg = mapper.createObjectNode();
-			ArrayNode arrayNodeUsuarios = mapper.createArrayNode();
+		ObjectNode msg;
+		ArrayNode arrayNodeUsuarios;
+		synchronized(mapper) {
+			msg = mapper.createObjectNode();
+			arrayNodeUsuarios = mapper.createArrayNode();
+		}
+		
+		msg.put("event", "updateChatUsers");
+		for (WebSocketSession session : sesiones) {
+			Player player = (Player) session.getAttributes().get(PLAYER_ATTRIBUTE);
 			
-			msg.put("event", "updateChatUsers");
-			for (WebSocketSession session : sesiones) {
-				Player player = (Player) session.getAttributes().get(PLAYER_ATTRIBUTE);
-				
-				ObjectNode jsonUsuario = mapper.createObjectNode();
-				jsonUsuario.put("name", player.getUsername());
-				
-				if (session.getAttributes().get(ROOM_ATTRIBUTE) instanceof Room) {
-					Room room = (Room) session.getAttributes().get(ROOM_ATTRIBUTE);
-					jsonUsuario.put("room", "En sala: " + room.getRoomId());
-				} else {
-					jsonUsuario.put("room", "En menus");
-				}
-				arrayNodeUsuarios.addPOJO(jsonUsuario);
+			ObjectNode jsonUsuario;
+			synchronized(mapper) {
+				jsonUsuario = mapper.createObjectNode();
 			}
-			msg.putPOJO("usuarios", arrayNodeUsuarios);
-			mensLock.lock();
+			jsonUsuario.put("name", player.getUsername());
+			
+			if (session.getAttributes().get(ROOM_ATTRIBUTE) instanceof Room) {
+				Room room = (Room) session.getAttributes().get(ROOM_ATTRIBUTE);
+				jsonUsuario.put("room", "En sala: " + room.getRoomId());
+			} else {
+				jsonUsuario.put("room", "En menus");
+			}
+			arrayNodeUsuarios.addPOJO(jsonUsuario);
+		}
+		msg.putPOJO("usuarios", arrayNodeUsuarios);
+		for(WebSocketSession s : sesiones) {
 			try {
-				for(WebSocketSession s : sesiones) {
+				synchronized(s) {
 					s.sendMessage(new TextMessage(msg.toString()));
 				}
-			}finally {
-				mensLock.unlock();
+			} catch (IOException e) {
+				System.out.println("Se intento enviar un mensaje a la sesion: " + s + " pero ya se habia desconectado");
 			}
-			
-		} catch (IOException e) {}
+		}
 	}
 }

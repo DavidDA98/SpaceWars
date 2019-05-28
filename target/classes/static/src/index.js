@@ -69,7 +69,8 @@ window.onload = function() {
 					name : msg.name,
 					mode : msg.mode,
 					maxPlayers : msg.maxPlayers,
-					difficulty : msg.difficulty
+					difficulty : msg.difficulty,
+					numPlayers : msg.numPlayers
 			}
 			break
 		case 'GET ROOMS' :
@@ -78,6 +79,15 @@ window.onload = function() {
 				console.dir(msg)
 			}
 			game.global.rooms = msg.rooms
+			break
+		case 'NEW PLAYER' :
+			if (game.global.DEBUG_MODE) {
+				console.log('[DEBUG] NEW PLAYER message recieved')
+				console.dir(msg)
+			}
+			
+			game.global.myPlayer.room.numPlayers++;
+			numPlayersRoom.setText(game.global.myPlayer.room.numPlayers);
 			break
 		case 'GAME STATE UPDATE' :
 			if (game.global.DEBUG_MODE) {
@@ -95,7 +105,8 @@ window.onload = function() {
 						game.global.myPlayer.thruster = player.thruster
 						game.global.myPlayer.score = player.score
 					} else {
-						if (typeof game.global.otherPlayers[player.id] == 'undefined') {
+						if (game.global.otherPlayers[player.id] == undefined) {
+							console.log("funciono")
 							game.global.otherPlayers[player.id] = {
 									image : game.add.sprite(player.posX, player.posY, 'spacewar', player.shipType)
 							}
@@ -134,10 +145,30 @@ window.onload = function() {
 		case 'REMOVE PLAYER' :
 			if (game.global.DEBUG_MODE) {
 				console.log('[DEBUG] REMOVE PLAYER message recieved')
-				console.dir(msg.players)
 			}
-			game.global.otherPlayers[msg.id].image.destroy()
-			delete game.global.otherPlayers[msg.id]
+			
+			game.global.myPlayer.room.numPlayers--;
+			
+			if (msg.id != game.global.myPlayer.id) {
+				
+				game.global.otherPlayers[msg.id].image.destroy()
+				game.global.otherPlayers[msg.id] = undefined
+				
+				if (game.global.myPlayer.room.numPlayers == 1) {
+					game.global.myPlayer.room = undefined
+					game.state.start('scoreState');
+				}
+			} else {
+				for (var i = 0; i < game.global.otherPlayers.length; i++) {
+					if (game.global.otherPlayers[i] != undefined) {
+						game.global.otherPlayers[i].image.destroy()
+						game.global.otherPlayers[i] = undefined
+					}
+				}
+				game.global.myPlayer.room = undefined
+				game.state.start('scoreState');
+			}
+			break
 		default :
 			console.dir(msg)
 			break
