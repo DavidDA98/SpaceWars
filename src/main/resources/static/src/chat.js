@@ -1,5 +1,4 @@
 function sendMessage() {
-	console.log("pureba");
 	let sender;
 	if (game.global.myPlayer.name == "") {
 		sender = "Anonymous";

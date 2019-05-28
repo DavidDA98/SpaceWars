@@ -89,9 +89,9 @@ function showonscreen() {
 	}
 	for(i = 0; i < 8; i++) {
 		if(game.global.rooms.length > i + page) {
-			arraybuttons[i] = game.add.button(50, 100, 'boton');
+			arraybuttons[i] = game.add.button(50, 100 + i * 50, 'boton');
 			arraybuttons[i].onInputDown.add(join, this, 0, game.global.rooms[i + page].name);
-			arraytexts[i] = game.add.text(150, 100, game.global.rooms[i + page].name, {
+			arraytexts[i] = game.add.text(150, 100 + i * 50, game.global.rooms[i + page].name, {
 				font: "24px Arial",
 				fill: "#FFFFFF"
 			})

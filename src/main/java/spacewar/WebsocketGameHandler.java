@@ -42,10 +42,14 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 
 	@Override
 	public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+		//Creamos el jugador y lo guardamos como atributo de la sesion
 		Player player = new Player(playerId.incrementAndGet(), session);
 		session.getAttributes().put(PLAYER_ATTRIBUTE, player);
 		
+		//Añadimos la sesion al conjunto de las sesiones
 		sesiones.add(session);
+		
+		//Devolvemos los valores del jugador al cliente
 		ObjectNode msg;
 		synchronized(mapper) {
 			msg = mapper.createObjectNode();
@@ -56,6 +60,8 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 		synchronized(session) {
 			player.getSession().sendMessage(new TextMessage(msg.toString()));
 		}
+		
+		//Si el chat no esta encendido se activa
 		schedulerLock.lock();
 		try {
 			if (scheduler == null) {
@@ -81,6 +87,7 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 			Room room;
 
 			switch (node.get("event").asText()) {
+			//Cuando recibe un mensaje del chat se lo envia a todos
 			case "NEW MESSAGE":
 				String chatMsg;
 				chatMsg = node.get("sender").asText() + ": " + node.get("message").asText();
@@ -94,6 +101,7 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 					}
 				}
 				break;
+			//Cuando se une un jugador le devuelve su id y nave
 			case "JOIN":
 				msg.put("event", "JOIN");
 				msg.put("id", player.getPlayerId());
@@ -102,13 +110,18 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 					player.getSession().sendMessage(new TextMessage(msg.toString()));
 				}
 				break;
+			//Actualiza el nombre de usuario y la nave de un jugador
 			case "UPDATE PLAYER":
 				player.setUsername(node.get("username").asText()); 
 				player.setShipType(node.get("ship").asText());
 				break;
+			//Crea una sala
 			case "CREATE ROOM":
+				boolean alreadyCreated = false;
 				roomLock.lock();
 				try {
+					room = new Room(node.get("name").asText(), node.get("mode").asInt(), node.get("maxPlayers").asInt(), node.get("difficulty").asInt());
+					//Comprueba que la sala no exista ya y si existe marca alredyCreated como true
 					for(Room r: rooms.keySet()) {
 						if (node.get("name").asText() == r.getRoomId()) {
 							msg.put("event", "NEW ROOM");
@@ -116,40 +129,49 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 							synchronized(player.getSession()) {
 								player.getSession().sendMessage(new TextMessage(msg.toString()));
 							}
+							alreadyCreated = true;
 							break;
 						}
 					}
-					room = new Room(node.get("name").asText(), node.get("mode").asInt(), node.get("maxPlayers").asInt(), node.get("difficulty").asInt());
-					session.getAttributes().put(ROOM_ATTRIBUTE, room);
-				
-					swg = new SpacewarGame();
-					swg.addPlayer(player);
-					rooms.put(room, swg);
+					//Si la sala no existia, la guarda en un atributo, crea una instancia del juego y junto a la sala la guarda en el mapa
+					if (!alreadyCreated) {
+						session.getAttributes().put(ROOM_ATTRIBUTE, room);
+					
+						swg = new SpacewarGame();
+						swg.addPlayer(player);
+						rooms.put(room, swg);
+					}
 				}finally {
 					roomLock.unlock();
 				}
-				
-				msg.put("event", "NEW ROOM");
-				msg.put("name", room.getRoomId());
-				msg.put("mode", room.getMode());
-				msg.put("maxPlayers", room.getMaxPlayers());
-				msg.put("difficulty", room.getDifficulty());
-				msg.put("numPlayers", room.getCurrentPlayers());
-				
-				player.resetPlayer();
-				synchronized(player.getSession()) {
-					player.getSession().sendMessage(new TextMessage(msg.toString()));
+				//Si la sala no existia le devuelve al jugador los datos de la sala
+				if (!alreadyCreated) {
+					msg.put("event", "NEW ROOM");
+					msg.put("name", room.getRoomId());
+					msg.put("mode", room.getMode());
+					msg.put("maxPlayers", room.getMaxPlayers());
+					msg.put("difficulty", room.getDifficulty());
+					msg.put("numPlayers", room.getCurrentPlayers());
+					
+					player.resetPlayer();
+					synchronized(player.getSession()) {
+						player.getSession().sendMessage(new TextMessage(msg.toString()));
+					}
 				}
 				break;
+			//Une al jugador a una sala
 			case "JOIN ROOM":
 				boolean found = false;
 				String sala = node.get("room").asText();
+				//Busca la sala
 				for(Room r: rooms.keySet()) {
 					if (sala.equals(r.getRoomId())) {
 						found = true;
+						//La guarda en un atributo
 						session.getAttributes().put(ROOM_ATTRIBUTE, r);
 						swg = rooms.get(r);
 						playersLock.lock();
+						//Comprueba si hay espacio y añade el jugador al juego
 						try {
 							if (r.getMaxPlayers() > r.getCurrentPlayers()) {
 								swg.addPlayer(player);
@@ -164,6 +186,7 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 							playersLock.unlock();
 						}
 						
+						//Si ha encontrado la sala le manda los datos al jugador
 						if (found) {
 							msg.put("event", "NEW ROOM");
 							msg.put("name", r.getRoomId());
@@ -181,6 +204,7 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 					}
 				}
 				
+				//Si no ha encontrado la sala le devulve un error
 				if (!found) {
 					msg.put("event", "NEW ROOM");
 					msg.put("name", -1);
@@ -189,6 +213,7 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 					}
 				}
 				break;
+			//Te borra de la sala y si esta vacia detiene el juego
 			case "LEAVE ROOM":
 				room = (Room) session.getAttributes().get(ROOM_ATTRIBUTE);
 				
@@ -201,6 +226,7 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 				
 				player.getSession().getAttributes().put(ROOM_ATTRIBUTE, "");
 				break;
+			//Devuelve todas las salas creadas
 			case "GET ROOMS":
 				ArrayNode arrayNodeRooms;
 				synchronized(mapper) {
@@ -225,10 +251,12 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 					player.getSession().sendMessage(new TextMessage(msg.toString()));
 				}
 				break;
+			//Se actualiza el movimiento del jugador si su vida es mayor a 0
 			case "UPDATE MOVEMENT":
 				if (player.getHealth() <= 0) {
 					break;
 				}
+				//Solo gasta propulsor si avanza, no si gira o dispara
 				if (player.getThruster() > 0) {
 					player.loadMovement(node.path("movement").get("thrust").asBoolean(),
 							node.path("movement").get("brake").asBoolean(),
@@ -265,12 +293,22 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 	@Override
 	public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
 		Player player = (Player) session.getAttributes().get(PLAYER_ATTRIBUTE);
+		//Si estaba en una sala se le borra de esta
 		if (session.getAttributes().get(ROOM_ATTRIBUTE) instanceof Room) {
 			Room room = (Room) session.getAttributes().get(ROOM_ATTRIBUTE);
 			SpacewarGame swg = rooms.get(room);
 			swg.removePlayer(player, false);
+			
+			//Si se ha vaciado se elimina
+			synchronized(room) {
+				room.updateCurrentPlayers(-1);
+				if (room.getCurrentPlayers() == 0) {
+					rooms.remove(room).stopGameLoop();
+				}
+			}
 		}
 		
+		//Se borra la sesion del conjunto y si se queda vacio se para el chat
 		sesiones.remove(session);
 		
 		schedulerLock.lock();
@@ -284,6 +322,7 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 		}
 	}
 	
+	//Manejador del chat
 	private void updateChatUsers() {
 		ObjectNode msg;
 		ArrayNode arrayNodeUsuarios;
@@ -293,6 +332,7 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 		}
 		
 		msg.put("event", "updateChatUsers");
+		//Para cada sesion se guarda el nombre de usuario y su sala
 		for (WebSocketSession session : sesiones) {
 			Player player = (Player) session.getAttributes().get(PLAYER_ATTRIBUTE);
 			
@@ -311,6 +351,7 @@ public class WebsocketGameHandler extends TextWebSocketHandler {
 			arrayNodeUsuarios.addPOJO(jsonUsuario);
 		}
 		msg.putPOJO("usuarios", arrayNodeUsuarios);
+		//Se envia el mensaje a todas las sesiones
 		for(WebSocketSession s : sesiones) {
 			try {
 				synchronized(s) {

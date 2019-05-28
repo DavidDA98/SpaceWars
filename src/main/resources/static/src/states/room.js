@@ -17,12 +17,6 @@ Spacewar.roomState.prototype = {
 	},
 
 	create : function() {
-		enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
-		mes = game.add.text(5, 580, "Message: ", {
-			font: "12px Courier",
-			fill: "#ffff66"
-		});
-
 		//mostrar datos sala
 		nameRoom = game.add.text(10, 30, game.global.myPlayer.room.name, {
 			font: "42px Arial",

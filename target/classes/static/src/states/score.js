@@ -8,6 +8,11 @@ Spacewar.scoreState.prototype = {
 		if (game.global.DEBUG_MODE) {
 			console.log("[DEBUG] Entering **SCORE** state");
 		}
+		
+		if (game.global.myPlayer.image != undefined) {
+			game.global.myPlayer.image.destroy();
+			game.global.myPlayer.image = undefined;
+		}
 	},
 
 	preload : function() {
@@ -31,11 +36,13 @@ Spacewar.scoreState.prototype = {
 		
 		game.global.socket.send(JSON.stringify(message));
 		
+		//Se resetea el array de enemigos
 		let arrayVacio = [];
 		game.global.otherPlayers = arrayVacio;
 		game.global.otherPlayers.length = 0;
 	},
 
+	//Como los ultimos puntos de la kill final pueden llegar mas tarde se actualiza
 	update : function() {
         finalPunt.setText("Final Score: " + game.global.myPlayer.score);
 	}

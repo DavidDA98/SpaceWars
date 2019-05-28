@@ -32,6 +32,7 @@ window.onload = function() {
 		var msg = JSON.parse(message.data)
 		
 		switch (msg.event) {
+		//Cuando recibe un mensaje lo añade al chat
 		case 'NEW MESSAGE':
 			if (game.global.DEBUG_MODE) {
 				console.log('[DEBUG] NEW MESSAGE message recieved')
@@ -39,6 +40,7 @@ window.onload = function() {
 			}
 			document.getElementById("chat").innerHTML = msg.message + "<br/>" + document.getElementById("chat").innerHTML;
 			break
+		//Resetea y rellena la informacion de los jugadores conectados
 		case 'updateChatUsers':
 			if (game.global.DEBUG_MODE) {
 				console.log('[DEBUG] updateChatUsers message recieved')
@@ -49,6 +51,7 @@ window.onload = function() {
 				document.getElementById("jugadores").innerHTML = document.getElementById("jugadores").innerHTML + usuario.name + "<br/>" + usuario.room + "<br/>";
 			}
 			break
+		//Guarda el id y la nave del jugador
 		case 'JOIN':
 			if (game.global.DEBUG_MODE) {
 				console.log('[DEBUG] JOIN message recieved')
@@ -60,6 +63,7 @@ window.onload = function() {
 				console.log('[DEBUG] ID assigned to player: ' + game.global.myPlayer.id)
 			}
 			break
+		//Guarda los datos de la sala a la que se ha unido el jugador
 		case 'NEW ROOM' :
 			if (game.global.DEBUG_MODE) {
 				console.log('[DEBUG] NEW ROOM message recieved')
@@ -73,6 +77,7 @@ window.onload = function() {
 					numPlayers : msg.numPlayers
 			}
 			break
+		//Guarda los datos de la salas recibidas
 		case 'GET ROOMS' :
 			if (game.global.DEBUG_MODE) {
 				console.log('[DEBUG] GET ROOMS message recieved')
@@ -80,6 +85,7 @@ window.onload = function() {
 			}
 			game.global.rooms = msg.rooms
 			break
+		//Aumenta los jugadores en la sala
 		case 'NEW PLAYER' :
 			if (game.global.DEBUG_MODE) {
 				console.log('[DEBUG] NEW PLAYER message recieved')
@@ -89,12 +95,13 @@ window.onload = function() {
 			game.global.myPlayer.room.numPlayers++;
 			numPlayersRoom.setText(game.global.myPlayer.room.numPlayers);
 			break
+		//Actualiza el estado del juego
 		case 'GAME STATE UPDATE' :
 			if (game.global.DEBUG_MODE) {
 				console.log('[DEBUG] GAME STATE UPDATE message recieved')
 				console.dir(msg)
 			}
-			if (typeof game.global.myPlayer.image !== 'undefined') {
+			if (game.global.myPlayer.image != undefined) {
 				for (var player of msg.players) {
 					if (game.global.myPlayer.id == player.id) {
 						game.global.myPlayer.image.x = player.posX
@@ -106,7 +113,6 @@ window.onload = function() {
 						game.global.myPlayer.score = player.score
 					} else {
 						if (game.global.otherPlayers[player.id] == undefined) {
-							console.log("funciono")
 							game.global.otherPlayers[player.id] = {
 									image : game.add.sprite(player.posX, player.posY, 'spacewar', player.shipType)
 							}
@@ -142,6 +148,8 @@ window.onload = function() {
 				}
 			}
 			break
+		//Borra un jugador y limpia sus datos guardados
+		//Si el jugador eres tu borra todos los datos de los enemigos tambien y te mueve a la pantalla de score
 		case 'REMOVE PLAYER' :
 			if (game.global.DEBUG_MODE) {
 				console.log('[DEBUG] REMOVE PLAYER message recieved')

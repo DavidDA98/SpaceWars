@@ -37,7 +37,8 @@ public class SpacewarGame {
 	public SpacewarGame() {
 
 	}
-
+	
+	//Añade a un jugador, avisa a los demas y si es el primero inicia el gameloop
 	public void addPlayer(Player player) {
 		ObjectNode msg;
 		synchronized(mapper) {
@@ -55,11 +56,14 @@ public class SpacewarGame {
 			this.startGameLoop();
 		}
 	}
-
+	
+	//Devuelve los jugadores
 	public Collection<Player> getPlayers() {
 		return players.values();
 	}
 
+	//Borra un jugador y avisa a los demas
+	//Si updateSelf es true, avisa al propio jugador eliminado
 	public void removePlayer(Player player, boolean updateSelf) {
 		players.remove(player.getSession().getId());
 
@@ -86,29 +90,35 @@ public class SpacewarGame {
 		}
 	}
 
+	//Añade un proyectil
 	public void addProjectile(int id, Projectile projectile) {
 		projectiles.put(id, projectile);
 	}
-
+	
+	//Devuelve todos los proyectiles
 	public Collection<Projectile> getProjectiles() {
 		return projectiles.values();
 	}
 
+	//Borra un proyectil
 	public void removeProjectile(Projectile projectile) {
 		projectiles.remove(projectile.getId(), projectile);
 	}
 
+	//Inicia el gameloop
 	public void startGameLoop() {
 		scheduler = Executors.newScheduledThreadPool(1);
 		scheduler.scheduleAtFixedRate(() -> tick(), TICK_DELAY, TICK_DELAY, TimeUnit.MILLISECONDS);
 	}
 
+	//Para el gameloop
 	public void stopGameLoop() {
 		if (scheduler != null) {
 			scheduler.shutdown();
 		}
 	}
 
+	//Manda un mensaje a todos los jugadores
 	public void broadcast(String message) {
 		for (Player player : getPlayers()) {
 			try {
@@ -123,6 +133,7 @@ public class SpacewarGame {
 		}
 	}
 
+	//Funcion que maneja cada tick del servidor
 	private void tick() {
 		ObjectNode json;
 		ArrayNode arrayNodePlayers;
@@ -166,13 +177,15 @@ public class SpacewarGame {
 				// Handle collision
 				for (Player player : getPlayers()) {
 					if ((projectile.getOwner().getPlayerId() != player.getPlayerId()) && player.intersect(projectile)) {
-						// System.out.println("Player " + player.getPlayerId() + " was hit!!!");
+						//Al impactar un disparo le baja la vida
 						player.setHealth(player.getHealth() - 20);
 						projectile.setHit(true);
 						
+						//Aumenta la puntuacion del jugador que disparo
 						Player otherPlayer = players.get(projectile.getOwner().getSession().getId());
 						otherPlayer.setScore(otherPlayer.getScore() + 10);
 						
+						//Si mato al jugador le da puntos extra
 						if (player.getHealth() == 0) {
 							otherPlayer.setScore(otherPlayer.getScore() + 100);
 							this.removePlayer(player, true);
