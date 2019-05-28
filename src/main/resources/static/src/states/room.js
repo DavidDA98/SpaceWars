@@ -18,28 +18,29 @@ Spacewar.roomState.prototype = {
 
 	create : function() {
 		//mostrar datos sala
-		nameRoom = game.add.text(10, 30, game.global.myPlayer.room.name, {
+		nameRoom = game.add.text(50, 100, game.global.myPlayer.room.name, {
 			font: "42px Arial",
 			fill: "#ffff66"
 		});
-		modeRoom = game.add.text(10, 60, ("Room's play mode: " + game.global.myPlayer.room.mode), {
+		modeRoom = game.add.text(50, 200, ("Room's play mode: " + game.global.myPlayer.room.mode), {
 			font: "24px Arial",
 			fill: "#ffff66"
 		});
-		difficultyRoom = game.add.text(10, 90,("Room's difficulty: " + game.global.myPlayer.room.difficulty), {
+		difficultyRoom = game.add.text(50, 250,("Room's difficulty: " + game.global.myPlayer.room.difficulty), {
 			font: "24px Arial",
 			fill: "#ffff66"
 		});
-		maxPlayersRoom = game.add.text(10, 120,("Room's maximum number of players: " + game.global.myPlayer.room.maxPlayers), {
+		maxPlayersRoom = game.add.text(50, 300,("Room's maximum number of players: " + game.global.myPlayer.room.maxPlayers), {
 			font: "24px Arial",
 			fill: "#ffff66"
 		});
-		numPlayersRoom = game.add.text(10, 150,("Room's number of players: " + game.global.myPlayer.room.numPlayers), {
+		numPlayersRoom = game.add.text(50, 350,("Room's number of players: " + game.global.myPlayer.room.numPlayers), {
 			font: "24px Arial",
 			fill: "#ffff66"
 		}); 
-		start = game.add.button(475, 480, 'boton', botonStart, this, 1, 0);
-		textNextButton = game.add.text(505, 480, "START", {
+
+		start = game.add.button(500, 480, 'boton', botonStart, this, 1, 0);
+		textNextButton = game.add.text(510, 480, "START", {
 			font: "24px Arial",
 			fill: "#000000"
 		})

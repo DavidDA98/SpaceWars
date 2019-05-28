@@ -57,6 +57,7 @@ async function getRooms() {
 }
 
 function join(room, event, nombreSala) {
+	//unirse a la sala elegida
 	salaElegida = nombreSala;
 	message = {
 		event : 'JOIN ROOM',
@@ -66,10 +67,12 @@ function join(room, event, nombreSala) {
 }
 
 function back() {
+	//volver al estado anterior
 	game.state.start('chooseRoomState')
 }
 
 function random() {
+	//elegir una sala aleatoria
 	join(0, 0, game.global.rooms[Math.floor(Math.random() * game.global.rooms.length)].name);
 }
 function refresh(){
@@ -77,6 +80,7 @@ function refresh(){
 }
 
 function showonscreen() {
+	//mostrar las salas creadas en orden
 	for(i = 0; i < 8; i++){
 		if(arraybuttons[i] != undefined) {
 			arraybuttons[i].destroy();
@@ -100,6 +104,7 @@ function showonscreen() {
 }
 
 function morerooms() {
+	//mostrar mas de las 8 salas que se muestran actualmente
 	if(game.global.rooms.length > 8 + page){
 		page += 8;
 		showonscreen();

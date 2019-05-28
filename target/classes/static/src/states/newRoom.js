@@ -33,18 +33,30 @@ Spacewar.newRoomState.prototype = {
 		});
 
 		game.add.button(100, 400, 'boton', gamemode, this, 1, 0);
+		textModeButton = game.add.text(100, 405, "Modo de juego", {
+			font: "15px Arial",
+			fill: "#000000"
+		})
 		modetext = game.add.text(300, 400, modo, {
 			font: "24px Arial",
 			fill: "#FFFFFF"
 		})
 
 		game.add.button(700, 400, 'boton', difficultylevel, this, 1, 0);
+		textDifficultyButton = game.add.text(700, 400, "Dificultad", {
+			font: "24px Arial",
+			fill: "#000000"
+		})
 		difficultytext = game.add.text(900, 400, dificultad, {
 			font: "24px Arial",
 			fill: "#FFFFFF"
 		})
 
 		game.add.button(500, 500, 'boton', createRoom, this, 1, 0);
+		textNextButton = game.add.text(530, 500, "OK", {
+			font: "24px Arial",
+			fill: "#000000"
+		})
 	},
 
 	update : function() {

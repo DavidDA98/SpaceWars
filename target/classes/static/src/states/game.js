@@ -57,6 +57,7 @@ Spacewar.gameState.prototype = {
 			}
 		}
 
+		//controls
 		this.wKey = game.input.keyboard.addKey(Phaser.Keyboard.W);
 		this.sKey = game.input.keyboard.addKey(Phaser.Keyboard.S);
 		this.aKey = game.input.keyboard.addKey(Phaser.Keyboard.A);
@@ -69,25 +70,26 @@ Spacewar.gameState.prototype = {
 				Phaser.Keyboard.SPACEBAR ]);
 
 		game.camera.follow(game.global.myPlayer.image);
-
+		
+		//user interface
 		nameUI = game.add.text(10, 20, game.global.myPlayer.name, {
 			font: "12px Arial",
 			fill: "#ffff66"
 		});
 
-		lifeUI = game.add.text(10, 20, "Salud: " + game.global.myPlayer.health, {
+		lifeUI = game.add.text(10, 40, "Salud: " + game.global.myPlayer.health, {
 			font: "12px Arial",
 			fill: "#ffff66"
 		});
 
 
-		proyectilesUI = game.add.text(5, 480, "Municion: " + game.global.myPlayer.ammo, {
+		proyectilesUI = game.add.text(5, 550, "Municion: " + game.global.myPlayer.ammo, {
 			font: "12px Arial",
 			fill: "#ffff66"
 		});
 		proyectilesUI.fixedToCamera = true;
 
-		propulsorUI = game.add.text(5, 490, "Propulsor: " + game.global.myPlayer.thruster, {
+		propulsorUI = game.add.text(5, 570, "Propulsor: " + game.global.myPlayer.thruster, {
 			font: "12px Arial",
 			fill: "#ffff66"
 		});
